@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ソラとコンの ぼうけん</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;700&display=swap');
+
+  :root {
+    --page-w: min(88vw, 960px);
+    --page-h: min(70vh, 640px);
+    --paper: #fffdf7;
+    --paper-back: #f5efe5;
+    --ink: #4a3d2e;
+    --ink-light: #9a8b78;
+    --accent: #c47a5a;
+    --shadow: rgba(60, 40, 20, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #e8e0d4;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ─────── 絵本全体 ─────── */
+  .book {
+    width: var(--page-w);
+    height: var(--page-h);
+    position: relative;
+    perspective: 1800px;
+  }
+
+  .book-spine {
+    position: absolute;
+    inset: 0;
+    background: var(--paper);
+    border-radius: 4px 12px 12px 4px;
+    box-shadow:
+      -4px 0 12px rgba(0,0,0,0.04),
+      4px 4px 24px var(--shadow),
+      8px 8px 48px rgba(60,40,20,0.06);
+  }
+
+  /* ─────── ページ共通 ─────── */
+  .page {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform 0.9s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 1;
+    cursor: pointer;
+  }
+
+  .page.flipped {
+    transform: rotateY(-180deg);
+    z-index: 0;
+  }
+
+  .page-front,
+  .page-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 4px 12px 12px 4px;
+    overflow: hidden;
+  }
+
+  .page-front {
+    background: var(--paper);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-back {
+    background: var(--paper-back);
+    transform: rotateY(180deg);
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .page-back::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 40px,
+        rgba(0,0,0,0.015) 40px,
+        rgba(0,0,0,0.015) 41px
+      );
+    pointer-events: none;
+  }
+
+  /* ── ページめくり時の影 ── */
+  .page-front::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 100%;
+    background: linear-gradient(to left, rgba(0,0,0,0.06), transparent);
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.4s;
+  }
+  .page.flipped .page-front::after {
+    opacity: 0;
+  }
+
+  .page-back::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50px;
+    height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.08), transparent);
+    pointer-events: none;
+  }
+
+  /* ─────── 表紙ページ ─────── */
+  .page-cover .page-front {
+    background-size: cover;
+    background-position: center;
+  }
+
+  .cover-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: auto;
+    padding: clamp(14px, 3vh, 28px) clamp(16px, 3vw, 40px) clamp(10px, 2vh, 20px);
+    background: linear-gradient(to bottom, rgba(255,253,247,0.92) 0%, rgba(255,253,247,0.75) 70%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+  }
+
+  .cover-title {
+    font-size: clamp(22px, 3.8vw, 44px);
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    text-align: center;
+    text-shadow: 0 1px 8px rgba(255,253,247,0.8);
+  }
+
+  .cover-sub {
+    font-size: clamp(9px, 1.3vw, 13px);
+    color: var(--ink-light);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+    text-shadow: 0 1px 6px rgba(255,253,247,0.9);
+  }
+
+  .cover-frame {
+    position: absolute;
+    inset: clamp(8px, 1.5vw, 18px);
+    border: 1.5px solid rgba(255,255,255,0.45);
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  .cover-author {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: clamp(8px, 1.5vh, 14px) 0;
+    text-align: center;
+    font-size: clamp(9px, 1.2vw, 13px);
+    color: var(--ink);
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    background: linear-gradient(to top, rgba(255,253,247,0.88) 0%, rgba(255,253,247,0.6) 70%, transparent 100%);
+    z-index: 4;
+  }
+
+  .cover-hint {
+    position: absolute;
+    bottom: clamp(28px, 5vh, 44px);
+    right: clamp(16px, 3vw, 32px);
+    font-size: clamp(9px, 1.1vw, 12px);
+    color: var(--ink-light);
+    opacity: 0.7;
+    animation: breathe 2.5s ease-in-out infinite;
+    z-index: 4;
+    text-shadow: 0 1px 4px rgba(255,253,247,0.8);
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 0.3; transform: translateX(0); }
+    50% { opacity: 0.8; transform: translateX(4px); }
+  }
+
+  /* ─────── コンテンツページ ─────── */
+  .scene-image {
+    flex: 1;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    min-height: 0;
+  }
+
+  .scene-image::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(to top, var(--paper), transparent);
+    pointer-events: none;
+  }
+
+  .scene-text {
+    padding: clamp(16px, 3vw, 36px) clamp(24px, 5vw, 64px);
+    position: relative;
+  }
+
+  .scene-text p {
+    font-size: clamp(12px, 1.7vw, 19px);
+    color: var(--ink);
+    line-height: 2;
+    text-align: center;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+  }
+
+  .scene-number {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #c8bba8;
+    font-weight: 300;
+  }
+
+  /* ─────── 音声ボタン ─────── */
+  .audio-btn {
+    position: absolute;
+    bottom: clamp(12px, 2vw, 20px);
+    right: clamp(16px, 3vw, 32px);
+    width: clamp(36px, 4.5vw, 50px);
+    height: clamp(36px, 4.5vw, 50px);
+    border-radius: 50%;
+    border: 1.5px solid #d8cfc0;
+    background: var(--paper);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s;
+    z-index: 30;
+  }
+  .audio-btn:hover {
+    border-color: var(--accent);
+    transform: scale(1.08);
+  }
+  .audio-btn.playing {
+    border-color: var(--accent);
+    background: #fdf5f0;
+  }
+  .audio-btn.playing .audio-icon {
+    animation: sound-wave 0.8s ease-in-out infinite;
+  }
+  @keyframes sound-wave {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  .audio-icon {
+    width: clamp(16px, 2vw, 22px);
+    height: clamp(16px, 2vw, 22px);
+  }
+
+  /* ─────── エンディング ─────── */
+  .ending-content {
+    text-align: center;
+  }
+  .ending-content h2 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 16px;
+    letter-spacing: 0.08em;
+  }
+  .ending-content p {
+    font-size: clamp(12px, 1.6vw, 17px);
+    color: var(--ink-light);
+    font-weight: 400;
+  }
+
+  /* ─────── ナビ ─────── */
+  .nav-bar {
+    position: absolute;
+    bottom: -48px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 60;
+  }
+  .nav-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 1.5px solid #d0c4b0; background: var(--paper);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+  }
+  .nav-btn:hover { border-color: var(--accent); background: #fdf5f0; transform: scale(1.08); }
+  .nav-btn svg { width: 15px; height: 15px; stroke: var(--ink-light); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-btn:hover svg { stroke: var(--accent); }
+
+  /* ─────── ヒント矢印 ─────── */
+  .turn-hint {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: clamp(24px, 3.5vw, 40px);
+    color: #d0c4b0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 50;
+  }
+  .turn-hint.left { left: -clamp(30px, 4vw, 50px); }
+  .turn-hint.right { right: -clamp(30px, 4vw, 50px); }
+
+  /* ─────── ドット ─────── */
+  .dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #d0c4b0;
+    transition: all 0.4s;
+    cursor: pointer;
+  }
+  .dot:hover { background: #b0a090; }
+  .dot.active {
+    background: var(--accent);
+    transform: scale(1.4);
+  }
+
+  /* ─────── ローディング ─────── */
+  .loader {
+    position: fixed;
+    inset: 0;
+    background: #e8e0d4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.6s;
+  }
+  .loader.hidden { opacity: 0; pointer-events: none; }
+  .loader p {
+    font-size: 16px;
+    color: var(--ink-light);
+    animation: breathe 2s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader"><p>えほんを ひらいています…</p></div>
+
+<div class="book" id="book">
+  <div class="book-spine"></div>
+  <div id="pages"></div>
+  <span class="turn-hint left" id="hintL" style="opacity:0">&#8249;</span>
+  <span class="turn-hint right" id="hintR" style="opacity:0">&#8250;</span>
+  <div class="nav-bar">
+    <button class="nav-btn" onclick="goHome()" title="さいしょから">
+      <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+    </button>
+    <button class="nav-btn" onclick="flipBack()" title="まえ">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="dots" id="dots"></div>
+    <button class="nav-btn" onclick="flipForward()" title="つぎ">
+      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+const story = [
+  {scene:1, narration:"あさだよー。ソラくん、おめめがさめたよ。まだねむいけど、おそとがまってるね。"},
+  {scene:2, narration:"おへやをとびだして、おそとへゴー！ きらきら、なにかひかっているよ。"},
+  {scene:3, narration:"あれれ？ ひかっていたのは、ちいさなこぎつねさんだったよ。コンとよんであげたんだ。"},
+  {scene:4, narration:"ソラとコンは、なかよしになったね。ふたりはいっしょに、もりのなかにすすんでいくよ。"},
+  {scene:5, narration:"もりのおくに、まぶしいくらいきらきら、きれいなおはなばたけをみつけたよ。ふたりとも、にっこり。"},
+  {scene:6, narration:"あれれ？ とつぜん、おおきな、おおきなあめがふってきたよ。かみなりもゴロゴロ。"},
+  {scene:7, narration:"ソラはコンをだっこして、こわいあめからにげたよ。ちからをあわせて、がんばったね。"},
+  {scene:8, narration:"あめがあがって、ふたりはひみつのどうくつをみつけたよ。そこには、きらきらのおほしさまがいっぱい！"},
+  {scene:9, narration:"たのしかったね。そらもゆうやけいろにそまって、おうちにかえるじかんだよ。"},
+  {scene:10, narration:"おうちについたよ。コン、またあした、あそぼうね。ソラはてをふったよ。"}
+];
+
+let currentIdx = 0;
+const totalPages = story.length + 2; // cover + 10 scenes + ending
+let audioEl = null;
+
+function init() {
+  const container = document.getElementById('pages');
+  const dots = document.getElementById('dots');
+
+  const allPages = [];
+
+  // 表紙
+  allPages.push({
+    cls: 'page page-cover',
+    front: `
+      <div class="page-front" style="background-image:url('images/cover.png');background-size:cover;background-position:center">
+        <div class="cover-overlay">
+          <div class="cover-title">ソラとコンの<br>ぼうけん</div>
+          <div class="cover-sub">— きょうだけの とくべつな ものがたり —</div>
+        </div>
+        <div class="cover-author">さく・え コーディー</div>
+        <div class="cover-frame"></div>
+        <span class="cover-hint">ページを めくってね →</span>
+      </div>`,
+    back: `<div class="page-back"><p style="color:#b8a890;font-size:13px;font-style:italic;">この おはなしは あなたの ために うまれました</p></div>`
+  });
+
+  // シーンページ
+  story.forEach((s, i) => {
+    const num = String(s.scene).padStart(2, '0');
+    allPages.push({
+      cls: 'page',
+      front: `
+        <div class="page-front">
+          <div class="scene-image" style="background-image:url('images/scene${num}.png')"></div>
+          <div class="scene-text">
+            <p>${s.narration}</p>
+            <span class="scene-number">${i + 1} / ${story.length}</span>
+            <button class="audio-btn" id="abtn${i}" onclick="event.stopPropagation(); toggleAudio(${i})">
+              <svg class="audio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#9a8b78">
+                <path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+            </button>
+          </div>
+        </div>`,
+      back: `<div class="page-back"></div>`
+    });
+  });
+
+  // エンディング
+  allPages.push({
+    cls: 'page',
+    front: `
+      <div class="page-front" style="display:flex;align-items:center;justify-content:center;">
+        <div class="ending-content">
+          <h2>おしまい</h2>
+          <p>ソラとコンの ぼうけんは つづく…</p>
+        </div>
+      </div>`,
+    back: `<div class="page-back"></div>`
+  });
+
+  // DOM生成
+  allPages.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = p.cls;
+    el.id = `p${i}`;
+    el.style.zIndex = allPages.length - i;
+    el.innerHTML = p.front + p.back;
+    el.addEventListener('click', () => flipPage(i));
+    container.appendChild(el);
+
+    // ドット
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.id = `d${i}`;
+    dot.addEventListener('click', (e) => { e.stopPropagation(); goToPage(i); });
+    dots.appendChild(dot);
+  });
+
+  // キーボード
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') flipForward();
+    if (e.key === 'ArrowLeft') flipBack();
+  });
+
+  updateHints();
+
+  // ローディング消す
+  setTimeout(() => document.getElementById('loader').classList.add('hidden'), 600);
+}
+
+function flipPage(idx) {
+  const el = document.getElementById(`p${idx}`);
+  if (!el) return;
+
+  if (el.classList.contains('flipped')) {
+    el.classList.remove('flipped');
+    currentIdx = idx;
+  } else {
+    el.classList.add('flipped');
+    currentIdx = idx + 1;
+
+    // 音声自動再生（シーンページの場合）
+    const sceneIdx = idx - 1; // page 0=cover, page 1=scene1...
+    if (sceneIdx >= 0 && sceneIdx < story.length) {
+      setTimeout(() => playAudio(sceneIdx), 500);
+    }
+  }
+
+  updateDots();
+  updateHints();
+}
+
+function flipForward() {
+  stopAudio();
+  if (currentIdx < totalPages) flipPage(currentIdx);
+}
+
+function flipBack() {
+  stopAudio();
+  if (currentIdx > 0) flipPage(currentIdx - 1);
+}
+
+function goHome() {
+  stopAudio();
+  const pages = document.querySelectorAll('.page.flipped');
+  let delay = 0;
+  for (let i = pages.length - 1; i >= 0; i--) {
+    setTimeout(() => pages[i].classList.remove('flipped'), delay);
+    delay += 120;
+  }
+  setTimeout(() => { currentIdx = 0; updateDots(); updateHints(); }, delay);
+}
+
+function goToPage(t) {
+  stopAudio();
+  if (t === currentIdx) return;
+  let delay = 0;
+  if (t > currentIdx) {
+    for (let i = currentIdx; i < t; i++) {
+      setTimeout(() => { const e = document.getElementById('p' + i); if (e) e.classList.add('flipped'); }, delay);
+      delay += 100;
+    }
+  } else {
+    for (let i = currentIdx - 1; i >= t; i--) {
+      setTimeout(() => { const e = document.getElementById('p' + i); if (e) e.classList.remove('flipped'); }, delay);
+      delay += 100;
+    }
+  }
+  setTimeout(() => { currentIdx = t; updateDots(); updateHints(); }, delay);
+}
+
+function updateDots() {
+  document.querySelectorAll('.dot').forEach((d, i) => {
+    d.classList.toggle('active', i === currentIdx);
+  });
+}
+
+function updateHints() {
+  document.getElementById('hintL').style.opacity = currentIdx > 0 ? '1' : '0';
+  document.getElementById('hintR').style.opacity = currentIdx < totalPages ? '1' : '0';
+}
+
+function toggleAudio(sceneIdx) {
+  if (audioEl && !audioEl.paused) {
+    stopAudio();
+  } else {
+    playAudio(sceneIdx);
+  }
+}
+
+function playAudio(sceneIdx) {
+  stopAudio();
+  const num = String(sceneIdx + 1).padStart(2, '0');
+  audioEl = new Audio(`audio/scene${num}.wav`);
+  audioEl.play().catch(() => {});
+  const btn = document.getElementById(`abtn${sceneIdx}`);
+  if (btn) btn.classList.add('playing');
+  audioEl.onended = () => {
+    if (btn) btn.classList.remove('playing');
+  };
+}
+
+function stopAudio() {
+  if (audioEl) {
+    audioEl.pause();
+    audioEl = null;
+  }
+  document.querySelectorAll('.audio-btn').forEach(b => b.classList.remove('playing'));
+}
+
+init();
+</script>
+</body>
+</html>
