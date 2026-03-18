@@ -57,40 +57,15 @@
     inset: 0;
     transform-origin: left center;
     transform-style: preserve-3d;
-    transition: transform 1.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+    transition: transform 1.4s cubic-bezier(0.15, 0.7, 0.3, 1);
     z-index: 1;
     cursor: pointer;
-  }
-
-  .page.flipping {
-    transition: transform 1.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
   }
 
   .page.flipped {
     transform: rotateY(-180deg);
     z-index: 0;
-  }
-
-  /* めくり途中の浮き上がり効果 */
-  .page.lift {
-    animation: pageLift 1.2s cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-  .page.lift-back {
-    animation: pageLiftBack 1.2s cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-
-  @keyframes pageLift {
-    0%   { transform: rotateY(0deg) translateZ(0); }
-    30%  { transform: rotateY(-45deg) translateZ(20px) scale(1.01); }
-    60%  { transform: rotateY(-120deg) translateZ(15px); }
-    100% { transform: rotateY(-180deg) translateZ(0) scale(1); }
-  }
-
-  @keyframes pageLiftBack {
-    0%   { transform: rotateY(-180deg) translateZ(0); }
-    30%  { transform: rotateY(-135deg) translateZ(20px) scale(1.01); }
-    60%  { transform: rotateY(-60deg) translateZ(15px); }
-    100% { transform: rotateY(0deg) translateZ(0) scale(1); }
   }
 
   .page-front,
@@ -135,35 +110,24 @@
     pointer-events: none;
   }
 
-  /* ── ページめくり時の影（リアルな追従シャドウ） ── */
+  /* ── ページ端の影 ── */
   .page-front::after {
     content: '';
     position: absolute;
     top: 0;
     right: 0;
-    width: 60px;
+    width: 50px;
     height: 100%;
     background: linear-gradient(to left,
-      rgba(0,0,0,0.10) 0%,
-      rgba(0,0,0,0.04) 40%,
+      rgba(0,0,0,0.08) 0%,
+      rgba(0,0,0,0.02) 50%,
       transparent 100%);
     pointer-events: none;
     opacity: 1;
-    transition: opacity 0.6s;
+    transition: opacity 0.8s;
   }
   .page.flipped .page-front::after {
     opacity: 0;
-  }
-
-  /* めくり中の動的シャドウ */
-  .page.lift .page-front::after {
-    animation: shadowPulse 1.2s ease;
-  }
-  @keyframes shadowPulse {
-    0%   { width: 60px; opacity: 1; }
-    30%  { width: 100px; opacity: 0.8; }
-    60%  { width: 80px; opacity: 0.5; }
-    100% { width: 60px; opacity: 0; }
   }
 
   .page-back::after {
@@ -171,26 +135,26 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 70px;
+    width: 50px;
     height: 100%;
     background: linear-gradient(to right,
-      rgba(0,0,0,0.12) 0%,
-      rgba(0,0,0,0.04) 40%,
+      rgba(0,0,0,0.10) 0%,
+      rgba(0,0,0,0.03) 50%,
       transparent 100%);
     pointer-events: none;
   }
 
-  /* 本の綴じ目の影（常時表示） */
+  /* 本の綴じ目の影 */
   .book-spine::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
-    width: 15px;
+    width: 12px;
     height: 100%;
     background: linear-gradient(to right,
-      rgba(0,0,0,0.08) 0%,
-      rgba(0,0,0,0.03) 50%,
+      rgba(0,0,0,0.06) 0%,
+      rgba(0,0,0,0.02) 50%,
       transparent 100%);
     border-radius: 4px 0 0 4px;
     z-index: 999;
@@ -606,26 +570,15 @@ function flipPage(idx) {
   playPageSound();
 
   if (el.classList.contains('flipped')) {
-    // 戻す
-    el.classList.add('lift-back');
     el.classList.remove('flipped');
     currentIdx = idx;
-    el.addEventListener('animationend', () => {
-      el.classList.remove('lift-back');
-    }, { once: true });
   } else {
-    // めくる
-    el.classList.add('lift');
     el.classList.add('flipped');
     currentIdx = idx + 1;
-    el.addEventListener('animationend', () => {
-      el.classList.remove('lift');
-    }, { once: true });
 
-    // 音声自動再生（シーンページの場合）
     const sceneIdx = idx - 1;
     if (sceneIdx >= 0 && sceneIdx < story.length) {
-      setTimeout(() => playAudio(sceneIdx), 600);
+      setTimeout(() => playAudio(sceneIdx), 700);
     }
   }
 
